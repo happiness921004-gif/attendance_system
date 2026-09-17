@@ -1,5 +1,33 @@
-import streamlit as st
+import sys
+import os
+import types
 import importlib
+
+# 1. 실행 디렉토리를 파이썬 검색 경로에 최우선 추가 (Streamlit Cloud 리눅스 환경 필수)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+modules_dir = os.path.join(BASE_DIR, "modules")
+if os.path.isdir(modules_dir) and modules_dir not in sys.path:
+    sys.path.insert(0, modules_dir)
+
+# 2. 깃허브 웹 업로드 시 modules 폴더 없이 루트에 파일들이 직접 업로드된 경우 자동 대응
+if not os.path.isdir(modules_dir) or not os.path.exists(os.path.join(modules_dir, "auth.py")):
+    if os.path.exists(os.path.join(BASE_DIR, "auth.py")):
+        if "modules" not in sys.modules:
+            mod_pkg = types.ModuleType("modules")
+            sys.modules["modules"] = mod_pkg
+        else:
+            mod_pkg = sys.modules["modules"]
+            
+        for m_name in ["auth", "sheet_connector", "term_calculator", "ui_dashboard", "ui_term_attendance", "ui_students", "ui_parking"]:
+            if os.path.exists(os.path.join(BASE_DIR, f"{m_name}.py")):
+                m = importlib.import_module(m_name)
+                setattr(mod_pkg, m_name, m)
+                sys.modules[f"modules.{m_name}"] = m
+
+import streamlit as st
 import config
 import modules.auth
 import modules.sheet_connector
